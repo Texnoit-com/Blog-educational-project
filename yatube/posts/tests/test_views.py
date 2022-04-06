@@ -237,8 +237,7 @@ class FollowViewsTest(TestCase):
     def test_user_follower_authors(self):
         '''Посты доступны пользователю, который подписался на автора.
            Увеличение подписок автора'''
-        count_follow = Follow.objects.filter(
-                       user=FollowViewsTest.user).count()
+        count_follow = Follow.objects.filter(user=FollowViewsTest.user).count()
         data_follow = {'user': FollowViewsTest.user,
                        'author': FollowViewsTest.author}
         url_redirect = reverse(
@@ -272,8 +271,8 @@ class FollowViewsTest(TestCase):
         new_count_follow = len(Follow.objects.filter(
             user=FollowViewsTest.user))
         self.assertFalse(Follow.objects.filter(
-                        user=FollowViewsTest.user,
-                        author=FollowViewsTest.author).exists())
+            user=FollowViewsTest.user,
+            author=FollowViewsTest.author).exists())
         self.assertRedirects(response, url_redirect)
         self.assertEqual(count_follow, new_count_follow)
 

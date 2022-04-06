@@ -150,11 +150,10 @@ class CommentFormTest(TestCase):
         form_data = {'post_id': self.post.id,
                      'author': self.user,
                      'text': 'Тестовый коммент2'}
-        response = self.authorized_client.post(
-                                    reverse('posts:add_comment',
-                                            kwargs={'post_id': self.post.id}),
-                                    data=form_data,
-                                    follow=True)
+        response = self.authorized_client.post(reverse('posts:add_comment',
+                                               kwargs={'post_id': self.post.id}),
+                                               data=form_data,
+                                               follow=True)
         error_name1 = 'Данные комментария не совпадают'
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTrue(Comment.objects.filter(
@@ -173,11 +172,10 @@ class CommentFormTest(TestCase):
         form_data = {'post_id': self.post.id,
                      'author': self.user,
                      'text': 'Тестовый коммент2'}
-        response = self.guest_client .post(
-                                    reverse('posts:add_comment',
-                                            kwargs={'post_id': self.post.id}),
-                                    data=form_data,
-                                    follow=True)
+        response = self.guest_client .post(reverse('posts:add_comment',
+                                           kwargs={'post_id': self.post.id}),
+                                           data=form_data,
+                                           follow=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         error_name2 = 'Комментарий добавлен в базу данных по ошибке'
         self.assertNotEqual(Post.objects.count(),
