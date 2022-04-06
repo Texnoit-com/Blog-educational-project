@@ -151,9 +151,9 @@ class CommentFormTest(TestCase):
                      'author': self.user,
                      'text': 'Тестовый коммент2'}
         response = self.authorized_client.post(
-                reverse('posts:add_comment',
-                        kwargs={'post_id': self.post.id}),
-                data=form_data, follow=True)
+                   reverse('posts:add_comment',
+                           kwargs={'post_id': self.post.id}),
+                   data=form_data, follow=True)
         error_name1 = 'Данные комментария не совпадают'
         self.assertEqual(response.status_code, HTTPStatus.OK)
         self.assertTrue(Comment.objects.filter(
