@@ -1,7 +1,10 @@
+import tempfile
+import shutil
 from django.contrib.auth import get_user_model
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.conf import settings
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django import forms
 
@@ -9,6 +12,7 @@ from ..models import Post, Group, Follow
 
 TEST_OF_POST: int = 13
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
 class PaginatorViewsTest(TestCase):
@@ -50,30 +54,8 @@ class PaginatorViewsTest(TestCase):
                              TEST_OF_POST - settings.FIRST_OF_POSTS,
                              error_name2)
 
-    def test_correct_page_context_authorized_client(self):
-        '''Проверка контекста страниц авторизованного пользователя'''
-        pages = [reverse('posts:index'),
-                 reverse('posts:profile',
-                         kwargs={'username': f'{self.user.username}'}),
-                 reverse('posts:group_list',
-                         kwargs={'slug': f'{self.group.slug}'})]
-        for page in pages:
-            response1 = self.authorized_client.get(page)
-            response2 = self.authorized_client.get(page + '?page=2')
-            count_posts1 = len(response1.context['page_obj'])
-            count_posts2 = len(response2.context['page_obj'])
-            error_name1 = (f'Ошибка: {count_posts1} постов,'
-                           f' должно {settings.FIRST_OF_POSTS}')
-            error_name2 = (f'Ошибка: {count_posts2} постов,'
-                           f'должно {TEST_OF_POST -settings.FIRST_OF_POSTS}')
-            self.assertEqual(count_posts1,
-                             settings.FIRST_OF_POSTS,
-                             error_name1)
-            self.assertEqual(count_posts2,
-                             TEST_OF_POST - settings.FIRST_OF_POSTS,
-                             error_name2)
 
-
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class ViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -105,6 +87,11 @@ class ViewsTest(TestCase):
                                         author=self.user,
                                         image=self.uploaded)
 
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
+
     def test_views_correct_template(self):
         '''URL-адрес использует соответствующий шаблон.'''
         templates_url_names = {
@@ -134,7 +121,7 @@ class ViewsTest(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': self.post.id}))
         post_text_0 = {response.context['post'].text: 'Тестовый пост',
                        response.context['post'].group: self.group,
-                       response.context['post'].author: self.user.username
+                       response.context['post'].author: User
                        }
         for value, expected in post_text_0.items():
             self.assertEqual(post_text_0[value], expected)
@@ -185,6 +172,10 @@ class ViewsTest(TestCase):
         self.assertIn(post, index, 'поста нет на главной')
         self.assertIn(post, group, 'поста нет в профиле')
         self.assertIn(post, profile, 'поста нет в группе')
+        var_group = response_group.context['group']
+        var_profile = response_profile.context['author']
+        self.assertEqual(post.group, var_group, ' нет переменной группы')
+        self.assertEqual(post.author, var_profile, ' нет переменной автора')
 
     def test_post_added_correctly_user2(self):
         """Пост при создании не добавляется другому пользователю
@@ -217,6 +208,9 @@ class ViewsTest(TestCase):
         after_create_post = self.authorized_client.get(reverse('posts:index'))
         first_item_after = after_create_post.content
         self.assertEqual(first_item_after, first_item_before)
+        cache.clear()
+        after_clear = self.authorized_client.get(reverse('posts:index'))
+        self.assertNotEqual(first_item_after, after_clear)
 
 
 class FollowViewsTest(TestCase):
@@ -258,18 +252,18 @@ class FollowViewsTest(TestCase):
     def test_user_unfollower_authors(self):
         '''Посты не доступны пользователю, который не подписался на автора.
            Непроисходит увеличение подписок автора'''
-        count_follow = len(Follow.objects.filter(
-                           user=FollowViewsTest.user))
+        count_follow = Follow.objects.filter(
+            user=FollowViewsTest.user).count()
         data_follow = {'user': FollowViewsTest.user,
                        'author': FollowViewsTest.author}
         url_redirect = ('/auth/login/?next=/profile/'
-                        f'{FollowViewsTest.author}/unfollow/')
+                        f'{self.author.username}/unfollow/')
         response = self.guest_client.post(
             reverse('posts:profile_unfollow', kwargs={
                 'username': FollowViewsTest.author}),
             data=data_follow, follow=True)
-        new_count_follow = len(Follow.objects.filter(
-            user=FollowViewsTest.user))
+        new_count_follow = Follow.objects.filter(
+            user=FollowViewsTest.user).count()
         self.assertFalse(Follow.objects.filter(
             user=FollowViewsTest.user,
             author=FollowViewsTest.author).exists())
@@ -286,9 +280,17 @@ class FollowViewsTest(TestCase):
                               author=FollowViewsTest.author)
         response_follower = self.authorized_client.get(
             reverse('posts:follow_index'))
+        new_posts = response_follower.context['page_obj']
+        self.assertIn(new_post_follower, new_posts)
+
+    def test_unfollower_no_see_new_post(self):
+        '''У не подписчика поста нет'''
+        new_post_follower = Post.objects.create(
+            author=FollowViewsTest.author,
+            text='Текстовый текст')
+        Follow.objects.create(user=FollowViewsTest.user,
+                              author=FollowViewsTest.author)
         response_unfollower = self.authorized_client2.get(
             reverse('posts:follow_index'))
-        new_posts = response_follower.context['page_obj']
         new_post_unfollower = response_unfollower.context['page_obj']
-        self.assertIn(new_post_follower, new_posts)
         self.assertNotIn(new_post_follower, new_post_unfollower)

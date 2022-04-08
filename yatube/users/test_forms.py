@@ -1,6 +1,7 @@
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from http import HTTPStatus
 
 User = get_user_model()
 
@@ -24,4 +25,4 @@ class PostFormTests(TestCase):
                                           follow=True)
         error_name = 'Пользователь не добавлен в базу данных'
         self.assertEqual(User.objects.count(), user_count + 1, error_name)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)

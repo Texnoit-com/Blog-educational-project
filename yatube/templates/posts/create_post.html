@@ -1,42 +1,31 @@
 {% extends 'base.html' %}
 
-{% block title %} Новый пост {% endblock %}
+{% block title %} 
+  {% if post %}
+    Редактировать запись
+  {% else %}
+    Добавить запись
+  {% endif %} 
+{% endblock %}
 
 {% block content %}
   <div class="container py-5">
     <div class="row justify-content-center">
       <div class="col-md-8 p-5">
         <div class="card">
-          <div class="card-header">       
-            Новый пост             
-          </div>
-          <div class="card-body">        
+          {% block header %} {% if post %}Редактировать запись{% else %}Добавить запись{% endif %} {% endblock %}
+          <div class="card-body">
             <form method="post" enctype="multipart/form-data">
-              {% csrf_token %}      
+              {% csrf_token %}
+              {% for element in form %}
                 <div class="form-group row my-3 p-3">
                   <label for="id_text">
-                    {{ form.text.help_text}}                 
+                    {{ element.help_text}}                 
                     <span class="required text-danger" >*</span>                  
                   </label>
-                  {{ form.text }}              
+                  {{ element }}              
                   <small id="id_text-help" class="form-text text-muted">
-                    Текст нового поста
-                    {% if form.subject.errors %}
-                      <ol>
-                        {% for error in form.subject.errors %}
-                          <li><strong>{{ error|escape }}</strong></li>
-                        {% endfor %}
-                      </ol>
-                    {% endif %}
-                  </small>                  
-                </div>            
-              <div class="form-group row my-3 p-3">
-                <label for="id_group">
-                  {{ form.group.help_text }}                 
-                </label>
-                {{ form.group }} 
-                <small id="id_group-help" class="form-text text-muted">
-                  Группа, к которой будет относиться пост
+                  {{ element.verbose_name}}
                   {% if form.subject.errors %}
                     <ol>
                       {% for error in form.subject.errors %}
@@ -44,31 +33,10 @@
                       {% endfor %}
                     </ol>
                   {% endif %}
-                </small>
-                <div class="form-group row my-3 p-3">
-                  <label for="id_group">Картинка</label>
-                  {{ form.image }}
-                  <small id="id_text-help" class="form-text text-muted">
-                    Текст нового поста
-                    {% if form.subject.errors %}
-                      <ol>
-                        {% for error in form.subject.errors %}
-                          <li><strong>{{ error|escape }}</strong></li>
-                        {% endfor %}
-                      </ol>
-                    {% endif %}
-                  </small>
-                </div>
-              </div>
-              <div class="d-flex justify-content-end">
-                <button type="submit" class="btn btn-primary">
-                  {% if is_edit %}
-                    Сохранить
-                  {% else %}
-                    Добавить
-                  {% endif %}  
-                </button>
-              </div>
+                </small>                  
+              </div>  
+              {% endfor %}
+              <button type="submit" class="btn btn-primary btn-block">{% if post %}Сохранить{% else %}Добавить запись{% endif %}</button>
             </form>
           </div>
         </div>

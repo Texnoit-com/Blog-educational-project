@@ -71,12 +71,6 @@ class PostURLTests(TestCase):
                 error_name = f'Ошибка: {adress} ожидал шаблон {template}'
                 self.assertTemplateUsed(response, template, error_name)
 
-    def test_rights_edit(self):
-        """Возможность редактирования поста"""
-        res_author = self.authorized_client.get(f'/posts/{self.post.id}/edit/')
-        error_name = 'Ошибка: автор не может редактировать свой пост'
-        self.assertEqual(res_author.status_code, HTTPStatus.OK, error_name)
-
     def test_404(self):
         """Запрос несуществующей страницы"""
         response = self.guest_client.get('/test-no-popular', follow=True)

@@ -70,7 +70,7 @@ class Comment(CreatedModel):
                             help_text='Напишите комментарий')
 
     class Meta:
-        ordering = ['-pub_date']
+        ordering = ('-pub_date',)
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
@@ -82,6 +82,8 @@ class Follow(models.Model):
                                on_delete=models.CASCADE)
 
     class Meta:
-        ordering = ['-author']
+        ordering = ('-author',)
         verbose_name = 'Лента автора'
         verbose_name_plural = 'Лента авторов'
+        constraints = [models.UniqueConstraint(
+            fields=['user', 'author'], name='unique_members')]

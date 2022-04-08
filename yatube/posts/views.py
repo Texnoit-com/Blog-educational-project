@@ -35,7 +35,8 @@ def group_posts(request, slug):
 @login_required
 def post_create(request):
     template = 'posts/create_post.html'
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None,
+                    files=request.FILES or None)
     if form.is_valid():
         post = form.save(commit=False)
         post.author = request.user
@@ -55,8 +56,7 @@ def post_edit(request, post_id):
                         files=request.FILES or None,
                         instance=post)
         if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
+            post = form.save()
             post.save()
             return redirect('posts:post_detail', post_id=post.id)
     form = PostForm(request.POST or None,
@@ -75,9 +75,10 @@ def profile(request, username):
     author = get_object_or_404(User, username=username)
     post_list = author.posts.select_related('group').all()
     page_obj = paginator_group(request, post_list)
-    user = request.user
-    following = (user.is_authenticated
-                 and Follow.objects.filter(user=user, author=author).exists())
+    following = (request.user.is_authenticated
+                 and Follow.objects.filter(
+                     user=request.user,
+                     author=author).exists())
     context = {
         'page_obj': page_obj,
         'author': author,
@@ -92,7 +93,6 @@ def post_detail(request, post_id):
     form = CommentForm()
     context = {'post': post,
                'form': form,
-               'author': post.author,
                'comments': comments}
     return render(request, template, context)
 
@@ -112,8 +112,7 @@ def add_comment(request, post_id):
 @login_required
 def follow_index(request):
     template = 'posts/follow.html'
-    authors = Follow.objects.filter(user=request.user).values_list('author')
-    posts_list = Post.objects.filter(author__in=authors)
+    posts_list = Post.objects.filter(author__following__user=request.user)
     posts_list.order_by("-pub_date")
     page = paginator_group(request, posts_list)
     context = {"page_obj": page}
@@ -132,6 +131,5 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     user = request.user
-    follow = get_object_or_404(Follow, user=user, author__username=username)
-    follow.delete()
+    Follow.objects.filter(user=user, author__username=username).delete()
     return redirect("posts:profile", username=username)

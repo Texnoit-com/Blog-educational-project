@@ -14,10 +14,10 @@ class StaticURLTests(TestCase):
         self.authorized_client.force_login(self.user)
 
     def test_static_page(self):
-        pages = ['/auth/signup/',
+        pages = ('/auth/signup/',
                  '/auth/logout/',
                  '/auth/login/',
-                 '/auth/password_reset/']
+                 '/auth/password_reset/')
         for page in pages:
             response = self.guest_client.get(page)
             error_name = f'Ошибка: нет доступа до страницы {page}'
@@ -25,8 +25,8 @@ class StaticURLTests(TestCase):
 
     def test_urls_authorized_client(self):
         """Доступ авторизованного пользователя"""
-        pages = ['/auth/password_change/',
-                 '/auth/password_change/done/']
+        pages = ('/auth/password_change/',
+                 '/auth/password_change/done/')
         for page in pages:
             response = self.authorized_client.get(page)
             error_name = f'Ошибка: нет доступа до страницы {page}'

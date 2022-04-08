@@ -1,7 +1,7 @@
 {% load thumbnail %}
 <article>
   <ul>
-    {% if author_link == True %}
+    {% if author_link %}
       <li>
         Автор: {{ post.author.username }}
         <a href="{% url 'posts:profile' post.author.username %}">
@@ -19,7 +19,7 @@
   <p>{{ post.text }}</p>
   <p><a href="{% url 'posts:post_detail' post.pk %}">подробная информация</a></p>
   {% if post.group %}
-    {% if profile_link_flag == True %}
+    {% if profile_link_flag %}
       <p><a href="{% url 'posts:group_list' post.group.slug %}">все записи группы {{ post.group }}</a></p>
     {% endif %}
   {% endif %}    

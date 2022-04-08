@@ -1,5 +1,8 @@
+import shutil
+import tempfile
 from http import HTTPStatus
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
+from django.conf import settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -8,8 +11,10 @@ from posts.models import Post, Group, Comment
 
 
 User = get_user_model()
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostFormTests(TestCase):
 
     def setUp(self):
@@ -31,6 +36,11 @@ class PostFormTests(TestCase):
         self.group = Group.objects.create(title='Тестовая группа',
                                           slug='test-group',
                                           description='Описание')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(settings.MEDIA_ROOT, ignore_errors=True)
+        super().tearDownClass()
 
     def test_create_post(self):
         '''Проверка создания поста'''
@@ -59,27 +69,22 @@ class PostFormTests(TestCase):
                                         author=self.user,
                                         group=self.group,
                                         image=self.uploaded)
-        old_text = self.post
         self.group2 = Group.objects.create(title='Тестовая группа2',
                                            slug='test-group2',
                                            description='Описание')
         form_data = {'text': 'Текст записанный в форму',
                      'group': self.group2.id}
         response = self.authorized_client.post(
-            reverse('posts:post_edit', kwargs={'post_id': old_text.id}),
+            reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
             data=form_data,
             follow=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         error_name1 = 'Данные поста не совпадают'
-        self.assertTrue(Post.objects.filter(
-                        group=self.group2.id,
-                        author=self.user,
-                        pub_date=self.post.pub_date
-                        ).exists(), error_name1)
-        error_name1 = 'Пользователь не может изменить содержание поста'
-        self.assertNotEqual(old_text.text, form_data['text'], error_name1)
-        error_name2 = 'Пользователь не может изменить группу поста'
-        self.assertNotEqual(old_text.group, form_data['group'], error_name2)
+        self.assertTrue(Post.objects.filter(id=self.post.id,
+                                            group=self.group2.id,
+                                            author=self.user,
+                                            pub_date=self.post.pub_date
+                                            ).exists(), error_name1)
 
     def test_group_null(self):
         '''Проверка что группу можно не указывать'''
@@ -87,16 +92,18 @@ class PostFormTests(TestCase):
                                         author=self.user,
                                         group=self.group,
                                         image=self.uploaded)
-        old_text = self.post
         form_data = {'text': 'Текст записанный в форму',
                      'group': ''}
         response = self.authorized_client.post(
-            reverse('posts:post_edit', kwargs={'post_id': old_text.id}),
+            reverse('posts:post_edit', kwargs={'post_id': self.post.id}),
             data=form_data,
             follow=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         error_name2 = 'Пользователь не может оставить поле нулевым'
-        self.assertNotEqual(old_text.group, form_data['group'], error_name2)
+        self.assertTrue(Post.objects.filter(id=self.post.id,
+                                            author=self.user,
+                                            pub_date=self.post.pub_date
+                                            ).exists(), error_name2)
 
     def test_reddirect_guest_client(self):
         '''Проверка редиректа неавторизованного пользователя'''
@@ -110,11 +117,19 @@ class PostFormTests(TestCase):
             data=form_data,
             follow=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
+        error_name1 = 'Данные поста не поменялись'
+        self.assertTrue(Post.objects.filter(id=self.post.id,
+                                            group=self.group.id,
+                                            text='Тестовый текст',
+                                            author=self.user,
+                                            pub_date=self.post.pub_date
+                                            ).exists(), error_name1)
         self.assertRedirects(response,
                              f'/auth/login/?next=/posts/{self.post.id}/edit/')
 
     def test_no_edit_post(self):
-        '''Проверка запрета редактирования не авторизованого пользователя'''
+        '''Проверка запрета добавления поста в базу данных
+           не авторизованого пользователя'''
         posts_count = Post.objects.count()
         form_data = {'text': 'Текст записанный в форму',
                      'group': self.group.id}
@@ -148,7 +163,6 @@ class CommentFormTest(TestCase):
         '''Проверка создания комментария'''
         comment_count = Comment.objects.count()
         form_data = {'post_id': self.post.id,
-                     'author': self.user,
                      'text': 'Тестовый коммент2'}
         response = self.authorized_client.post(
             reverse('posts:add_comment',
@@ -172,12 +186,29 @@ class CommentFormTest(TestCase):
         form_data = {'post_id': self.post.id,
                      'author': self.user,
                      'text': 'Тестовый коммент2'}
-        response = self.guest_client .post(reverse('posts:add_comment',
-                                           kwargs={'post_id': self.post.id}),
-                                           data=form_data,
-                                           follow=True)
+        response = self.guest_client.post(reverse('posts:add_comment',
+                                          kwargs={'post_id': self.post.id}),
+                                          data=form_data,
+                                          follow=True)
         self.assertEqual(response.status_code, HTTPStatus.OK)
         error_name2 = 'Комментарий добавлен в базу данных по ошибке'
-        self.assertNotEqual(Post.objects.count(),
+        self.assertNotEqual(Comment.objects.count(),
+                            posts_count + 1,
+                            error_name2)
+
+    def test_comment_null(self):
+        '''Запрет пустого комментария'''
+        posts_count = Comment.objects.count()
+        form_data = {'post_id': self.post.id,
+                     'author': self.user,
+                     'text': ''}
+        response = self.authorized_client.post(
+            reverse('posts:add_comment',
+                    kwargs={'post_id': self.post.id}),
+            data=form_data,
+            follow=True)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+        error_name2 = 'Комментарий добавлен в базу данных по ошибке'
+        self.assertNotEqual(Comment.objects.count(),
                             posts_count + 1,
                             error_name2)
