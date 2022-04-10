@@ -56,6 +56,7 @@ class Group(models.Model):
 
 
 class Comment(CreatedModel):
+
     post = models.ForeignKey('Post',
                              on_delete=models.CASCADE,
                              related_name='comments',
