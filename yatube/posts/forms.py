@@ -20,6 +20,7 @@ class CommentForm(ModelForm):
 
     def clean_text(self):
         '''Самая примитивная реализация отбора'''
+        old_comment = self.cleaned_data['text']
         comment = self.cleaned_data['text']
         regulation = ['Пушкин', 'Лермонтов']
         for element in range(len(regulation)):
@@ -29,4 +30,4 @@ class CommentForm(ModelForm):
         comment = set(comment.split(' '))
         if comment.intersection(regulation):
             raise ValidationError("Forbidden word!")
-        return comment
+        return old_comment
