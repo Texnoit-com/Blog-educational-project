@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.forms import ModelForm
 
-from .models import Post, Comment
+from .models import Comment, Post
 
 
 class PostForm(ModelForm):
@@ -16,3 +17,16 @@ class CommentForm(ModelForm):
     class Meta:
         model = Comment
         fields = ('text', )
+
+    def clean_text(self):
+        '''Самая примитивная реализация отбора'''
+        comment = self.cleaned_data['text']
+        regulation = ['Пушкин', 'Лермонтов']
+        for element in range(len(regulation)):
+            regulation[element] = regulation[element].upper()
+        regulation = set(regulation)
+        comment = comment.upper()
+        comment = set(comment.split(' '))
+        if comment.intersection(regulation):
+            raise ValidationError("Forbidden word!")
+        return comment

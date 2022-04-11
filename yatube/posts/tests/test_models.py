@@ -1,9 +1,8 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-from django.conf import settings
 
 from ..models import Group, Post
-
 
 User = get_user_model()
 

@@ -1,14 +1,15 @@
-import tempfile
 import shutil
-from django.contrib.auth import get_user_model
-from django.test import Client, TestCase, override_settings
-from django.urls import reverse
+import tempfile
+
+from django import forms
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django import forms
+from django.test import Client, TestCase, override_settings
+from django.urls import reverse
 
-from ..models import Post, Group, Follow, Comment
+from ..models import Comment, Follow, Group, Post
 
 TEST_OF_POST: int = 13
 User = get_user_model()
@@ -297,7 +298,7 @@ class FollowViewsTest(TestCase):
         self.assertNotIn(new_post_follower, new_post_unfollower)
 
 
-'''class CommentTest(TestCase):
+class CommentTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -323,12 +324,12 @@ class FollowViewsTest(TestCase):
                                               text='Тестовый коммент')
         response = self.authorized_client.get(
             reverse('posts:post_detail', kwargs={'post_id': self.post.id}))
-        post_text_0 = {response.context['comment'].text: 'Тестовый коммент',
-                       response.context['comment'].author: ViewsTest.user
+        post_text_0 = {response.context['post'].text: 'Тестовый коммент',
+                       response.context['post'].author: self.user.username
                        }
         for value, expected in post_text_0.items():
             self.assertEqual(post_text_0[value], expected)
         error_name2 = 'Комментарий не добавлен в базу данных'
         self.assertEqual(Comment.objects.count(),
                          comment_count + 1,
-                         error_name2)'''
+                         error_name2)
