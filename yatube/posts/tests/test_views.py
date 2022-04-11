@@ -8,7 +8,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django import forms
 
-from ..models import Post, Group, Follow
+from ..models import Post, Group, Follow, Comment
 
 TEST_OF_POST: int = 13
 User = get_user_model()
@@ -121,7 +121,7 @@ class ViewsTest(TestCase):
             reverse('posts:post_detail', kwargs={'post_id': self.post.id}))
         post_text_0 = {response.context['post'].text: 'Тестовый пост',
                        response.context['post'].group: self.group,
-                       response.context['post'].author: User
+                       response.context['post'].author: ViewsTest.user
                        }
         for value, expected in post_text_0.items():
             self.assertEqual(post_text_0[value], expected)
@@ -150,6 +150,7 @@ class ViewsTest(TestCase):
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
+        self.assertTrue(response.context.get('is_edit'))
 
     def test_post_added_correctly(self):
         """Пост при создании добавлен корректно"""
@@ -294,3 +295,40 @@ class FollowViewsTest(TestCase):
             reverse('posts:follow_index'))
         new_post_unfollower = response_unfollower.context['page_obj']
         self.assertNotIn(new_post_follower, new_post_unfollower)
+
+
+'''class CommentTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth1')
+        cls.user2 = User.objects.create_user(username='auth2')
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
+        self.group = Group.objects.create(title='Тестовая группа',
+                                          slug='test_group')
+        self.post = Post.objects.create(text='Тестовый текст',
+                                        group=self.group,
+                                        author=self.user)
+
+    def test_post_detail_page_show_correct_context(self):
+        """Шаблон post_detail сформирован с
+           правильным контекстом комментария."""
+        comment_count = Comment.objects.count()
+        self.comment = Comment.objects.create(post_id=self.post.id,
+                                              author=self.user,
+                                              text='Тестовый коммент')
+        response = self.authorized_client.get(
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id}))
+        post_text_0 = {response.context['comment'].text: 'Тестовый коммент',
+                       response.context['comment'].author: ViewsTest.user
+                       }
+        for value, expected in post_text_0.items():
+            self.assertEqual(post_text_0[value], expected)
+        error_name2 = 'Комментарий не добавлен в базу данных'
+        self.assertEqual(Comment.objects.count(),
+                         comment_count + 1,
+                         error_name2)'''

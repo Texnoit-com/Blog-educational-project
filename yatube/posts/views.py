@@ -57,7 +57,6 @@ def post_edit(request, post_id):
                         instance=post)
         if form.is_valid():
             post = form.save()
-            post.save()
             return redirect('posts:post_detail', post_id=post.id)
     form = PostForm(request.POST or None,
                     files=request.FILES or None,
@@ -113,7 +112,6 @@ def add_comment(request, post_id):
 def follow_index(request):
     template = 'posts/follow.html'
     posts_list = Post.objects.filter(author__following__user=request.user)
-    posts_list.order_by("-pub_date")
     page = paginator_group(request, posts_list)
     context = {"page_obj": page}
     return render(request, template, context)

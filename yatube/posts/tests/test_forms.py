@@ -1,8 +1,9 @@
 import shutil
 import tempfile
 from http import HTTPStatus
-from django.test import Client, TestCase, override_settings
+
 from django.conf import settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -56,6 +57,7 @@ class PostFormTests(TestCase):
         self.assertTrue(Post.objects.filter(
                         text='Текст записанный в форму',
                         group=self.group.id,
+                        image=f'posts/{self.uploaded}',
                         author=self.user
                         ).exists(), error_name1)
         error_name2 = 'Поcт не добавлен в базу данных'
@@ -83,6 +85,7 @@ class PostFormTests(TestCase):
         self.assertTrue(Post.objects.filter(id=self.post.id,
                                             group=self.group2.id,
                                             author=self.user,
+                                            image=f'posts/{self.uploaded}',
                                             pub_date=self.post.pub_date
                                             ).exists(), error_name1)
 
@@ -102,6 +105,7 @@ class PostFormTests(TestCase):
         error_name2 = 'Пользователь не может оставить поле нулевым'
         self.assertTrue(Post.objects.filter(id=self.post.id,
                                             author=self.user,
+                                            group=None,
                                             pub_date=self.post.pub_date
                                             ).exists(), error_name2)
 
@@ -183,8 +187,8 @@ class CommentFormTest(TestCase):
     def test_no_edit_comment(self):
         '''Проверка запрета комментирования не авторизованого пользователя'''
         posts_count = Comment.objects.count()
-        form_data = {'post_id': self.post.id,
-                     'author': self.user,
+        form_data = {'post_id': self.post.pk,
+                     'author': self.user.username,
                      'text': 'Тестовый коммент2'}
         response = self.guest_client.post(reverse('posts:add_comment',
                                           kwargs={'post_id': self.post.id}),
@@ -199,8 +203,8 @@ class CommentFormTest(TestCase):
     def test_comment_null(self):
         '''Запрет пустого комментария'''
         posts_count = Comment.objects.count()
-        form_data = {'post_id': self.post.id,
-                     'author': self.user,
+        form_data = {'post_id': self.post.pk,
+                     'author': self.user.username,
                      'text': ''}
         response = self.authorized_client.post(
             reverse('posts:add_comment',

@@ -13,7 +13,7 @@
     <div class="row justify-content-center">
       <div class="col-md-8 p-5">
         <div class="card">
-          {% block header %} {% if post %}Редактировать запись{% else %}Добавить запись{% endif %} {% endblock %}
+          {% if post %}Редактировать запись{% else %}Добавить запись{% endif %}
           <div class="card-body">
             <form method="post" enctype="multipart/form-data">
               {% csrf_token %}
