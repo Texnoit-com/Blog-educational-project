@@ -9,6 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
+from ..forms import CommentForm
 from ..models import Comment, Follow, Group, Post
 
 TEST_OF_POST: int = 13
@@ -318,18 +319,14 @@ class CommentTest(TestCase):
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с
            правильным контекстом комментария."""
-        comment_count = Comment.objects.count()
         self.comment = Comment.objects.create(post_id=self.post.id,
                                               author=self.user,
                                               text='Тестовый коммент')
         response = self.authorized_client.get(
             reverse('posts:post_detail', kwargs={'post_id': self.post.id}))
-        post_text_0 = {response.context['post'].text: 'Тестовый коммент',
-                       response.context['post'].author: self.user.username
-                       }
-        for value, expected in post_text_0.items():
-            self.assertEqual(post_text_0[value], expected)
-        error_name2 = 'Комментарий не добавлен в базу данных'
-        self.assertEqual(Comment.objects.count(),
-                         comment_count + 1,
-                         error_name2)
+        comments = {response.context['comments'][0].text: 'Тестовый коммент',
+                    response.context['comments'][0].author: self.user.username
+                    }
+        for value, expected in comments.items():
+            self.assertEqual(comments[value], expected)
+        self.assertTrue(response.context['form'], 'форма получена')

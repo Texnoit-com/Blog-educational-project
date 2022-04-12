@@ -196,9 +196,7 @@ class CommentFormTest(TestCase):
     def test_no_edit_comment(self):
         '''Проверка запрета комментирования не авторизованого пользователя'''
         posts_count = Comment.objects.count()
-        form_data = {'post_id': self.post.pk,
-                     'author': self.user.username,
-                     'text': 'Тестовый коммент2'}
+        form_data = {'text': 'Тестовый коммент2'}
         response = self.guest_client.post(reverse('posts:add_comment',
                                           kwargs={'post_id': self.post.id}),
                                           data=form_data,
@@ -212,9 +210,7 @@ class CommentFormTest(TestCase):
     def test_comment_null(self):
         '''Запрет пустого комментария'''
         posts_count = Comment.objects.count()
-        form_data = {'post_id': self.post.pk,
-                     'author': self.user.username,
-                     'text': ''}
+        form_data = {'text': ''}
         response = self.authorized_client.post(
             reverse('posts:add_comment',
                     kwargs={'post_id': self.post.id}),
