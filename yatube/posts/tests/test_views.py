@@ -9,7 +9,6 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..forms import CommentForm
 from ..models import Comment, Follow, Group, Post
 
 TEST_OF_POST: int = 13
